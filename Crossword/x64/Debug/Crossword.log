@@ -1,0 +1,9 @@
+﻿  TileMatrix.cpp
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(94): warning C4244: =: преобразование "double" в "LONG", возможна потеря данных
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(95): warning C4244: +=: преобразование "double" в "LONG", возможна потеря данных
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(96): warning C4244: =: преобразование "double" в "LONG", возможна потеря данных
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(97): warning C4244: +=: преобразование "double" в "LONG", возможна потеря данных
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(123): warning C4244: +=: преобразование "double" в "LONG", возможна потеря данных
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(124): warning C4244: +=: преобразование "double" в "LONG", возможна потеря данных
+c:\users\user\source\repos\kursovaya_spro\crossword\tilematrix.cpp(215): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+  Crossword.vcxproj -> C:\Users\user\source\repos\kursovaya_spro\x64\Debug\Crossword.exe

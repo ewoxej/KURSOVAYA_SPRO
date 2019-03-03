@@ -7,6 +7,7 @@
 class TileMatrix
 {
 private:
+	char state;
 	Tile** matr;
 	int** matr_x;
 	int** matr_y;
@@ -32,6 +33,8 @@ public:
 	void Draw();
 	void attachHDC(HDC _hdc);
 	void attachRECT(RECT _rect);
+	char getState();
+	void setState(char);
 	void setValueByPress(LPARAM lParam, int val);
 	void save(std::string filename);
 	void restore(std::string filename);

@@ -137,8 +137,19 @@ void TileMatrix::attachRECT(RECT _rect)
 
 }
 
+char TileMatrix::getState()
+{
+	return state;
+}
+
+void TileMatrix::setState(char _st)
+{
+	state = _st;
+}
+
 void TileMatrix::setValueByPress(LPARAM lParam,int val)
 {
+	if (val == 2 && state == 1) return;
 	int xPos, yPos;
 	RECT tempR;
 	xPos = GET_X_LPARAM(lParam);

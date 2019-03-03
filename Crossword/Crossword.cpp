@@ -11,7 +11,9 @@ HINSTANCE hInst;                                // текущий экземпл
 WCHAR szTitle[MAX_LOADSTRING];                  // Текст строки заголовка
 WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса главного окна
 TileMatrix matr(9, 12);
-
+HWND editor_button, game_button, about_button;
+HMENU editor_menu, game_menu;
+CHAR win_state = 0;//0-mainmenu,1-editor,2-game;
 // Отправить объявления функций, включенных в этот модуль кода:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -76,8 +78,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CROSSWORD));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = 0;// (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_CROSSWORD);
+	wcex.hbrBackground =  (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = 0;
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -109,6 +111,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
    //
+   editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+   10, 10, 120, 30, hWnd, (HMENU)IDB_EDITOR, hInstance, NULL);
+   game_button = CreateWindow(L"button", L"Играть", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+   10, 50, 120, 30, hWnd, (HMENU)IDB_GAME, hInstance, NULL);
+   about_button = CreateWindow(L"button", L"О программе", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+	   10, 90, 120, 30, hWnd, (HMENU)IDB_ABOUT, hInstance, NULL);
+   editor_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+   game_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU2));
    RECT r;
    r.bottom = 400;
    r.top = 10;
@@ -136,14 +146,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
-            case IDM_ABOUT:
-				matr.save("mysave.txt");
-               // DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-				matr.restore("mysave.txt");
-                //DestroyWindow(hWnd);
-                break;
+			case IDB_EDITOR:
+			{
+				win_state = 1;
+				matr.setState(1);
+				SetMenu(hWnd, editor_menu);
+				DestroyWindow(editor_button);
+				DestroyWindow(game_button);
+				DestroyWindow(about_button);
+				break; }
+			case IDB_GAME:
+			{
+				win_state = 2;
+				matr.setState(2);
+				SetMenu(hWnd, game_menu);
+				DestroyWindow(editor_button);
+				DestroyWindow(game_button);
+				DestroyWindow(about_button);
+				break; }
+			case IDB_MAINMENU:{
+				matr.setState(0);
+				win_state = 0;
+				SetMenu(hWnd, NULL);
+				   editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+   10, 10, 120, 30, hWnd, (HMENU)IDB_EDITOR, hInst, NULL);
+   game_button = CreateWindow(L"button", L"Играть", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+   10, 50, 120, 30, hWnd, (HMENU)IDB_GAME, hInst, NULL);
+   about_button = CreateWindow(L"button", L"О программе", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+	   10, 90, 120, 30, hWnd, (HMENU)IDB_ABOUT, hInst, NULL);
+				break;
+			}
+			case IDB_ABOUT: {
+				break;
+			}
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
@@ -163,32 +198,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             
-			hBitmap = (HBITMAP)LoadImage(NULL, L"pic.bmp",
-				IMAGE_BITMAP,
-				0, 0,
-				LR_LOADFROMFILE);
+			//hBitmap = (HBITMAP)LoadImage(NULL, L"pic.bmp",
+			//	IMAGE_BITMAP,
+			//	0, 0,
+			//	LR_LOADFROMFILE);
 			HDC hdc = BeginPaint(hWnd, &ps);
-			// Получаем размероность загруженного bitmap'a.
-			//GetObject(hBitmap, sizeof(BITMAP), &Bitmap);
-			//Создаем совместный с контекстом окна контекст в памяти.
-			hCompatibleDC = CreateCompatibleDC(hdc);
-			//Делаем загруженный из фаила bitmap текущим в совместимом контексте.
-			hOldBitmap = SelectObject(hCompatibleDC, hBitmap);
-			//Определяем размер рабочей области окна.
-			GetClientRect(hWnd, &Rect);
-			//Копируем bitmap с совместимого на основной контекст с масштабированием.
-			GetObject(hBitmap, sizeof(Bitmap), &Bitmap);
-			StretchBlt(hdc, 0, 0, Rect.right, Rect.bottom,
-				hCompatibleDC, 0, 0, Bitmap.bmWidth,
-				Bitmap.bmHeight, SRCCOPY);
 
-			SelectObject(hCompatibleDC, hOldBitmap);
+			//hCompatibleDC = CreateCompatibleDC(hdc);
 
-			DeleteObject(hBitmap);
+			//hOldBitmap = SelectObject(hCompatibleDC, hBitmap);
 
-			DeleteDC(hCompatibleDC);
+			//GetClientRect(hWnd, &Rect);
+			//GetObject(hBitmap, sizeof(Bitmap), &Bitmap);
+			//StretchBlt(hdc, 0, 0, Rect.right, Rect.bottom,
+			//	hCompatibleDC, 0, 0, Bitmap.bmWidth,
+			//	Bitmap.bmHeight, SRCCOPY);
+
+			//SelectObject(hCompatibleDC, hOldBitmap);
+
+			//DeleteObject(hBitmap);
+
+			//DeleteDC(hCompatibleDC);
 					matr.attachHDC(hdc);
-					//matr.Draw();
+					if(win_state!=0)
+					matr.Draw();
             EndPaint(hWnd, &ps);
         }
         break;
