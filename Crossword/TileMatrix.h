@@ -1,4 +1,5 @@
 #pragma once
+#include<windows.h>
 #include<windowsx.h>
 #include<string>
 #include<fstream>
@@ -8,6 +9,7 @@ class TileMatrix
 {
 private:
 	char state;
+	bool hlErr;
 	Tile** matr;
 	int** matr_x;
 	int** matr_y;
@@ -30,6 +32,7 @@ public:
 	TileMatrix(int x,int y);
 	void setValue(int x, int y, int val);
 	int getValue(int x, int y);
+	void highlightErrors();
 	void Draw();
 	void attachHDC(HDC _hdc);
 	void attachRECT(RECT _rect);

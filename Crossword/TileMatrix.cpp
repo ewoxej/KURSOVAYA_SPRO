@@ -1,6 +1,4 @@
-#include "stdafx.h"
 #include "TileMatrix.h"
-#include<iostream>//for test
 template<class T>
 T ** TileMatrix::memAlloc(int _dim_Xs,int _cols)
 {
@@ -48,6 +46,11 @@ void TileMatrix::fillMatrix(int ** matr, int _r, int _c)
 			matr[i][j] = 0;
 }
 
+void TileMatrix::highlightErrors()
+{
+	hlErr = !hlErr;
+}
+
 int TileMatrix::deleteZeros(int ** matr, int dim_Xs, int dim_Ys,bool indim_Xs)
 {
 	int count = 0;
@@ -91,10 +94,10 @@ void TileMatrix::Draw()
 	RECT topRect = rect;
 	int width = (rect.right - rect.left);
 	int height = (rect.bottom - rect.top);
-	topRect.bottom = rect.top + (height*0.3);
-	topRect.left += (width*0.3);
-	leftRect.right = rect.left + (width*0.3);
-	leftRect.top += (height*0.3);
+	topRect.bottom = rect.top + (height*0.25);
+	topRect.left += (width*0.25);
+	leftRect.right = rect.left + (width*0.25);
+	leftRect.top += (height*0.25);
 	/////////////////////////////////
 	fillMatrix(matr_x, dim_X, dim_YDM);
 	fillMatrix(matr_y, dim_XDM, dim_Y);
@@ -106,7 +109,7 @@ void TileMatrix::Draw()
 	DrawMatrix(matr_y, dim_XDM, dim_Y, leftRect);
 	for (int i = 0; i < dim_X; i++)
 		for (int j = 0; j < dim_Y; j++)
-			matr[i][j].Draw();
+			matr[i][j].Draw(hlErr);
 }
 
 void TileMatrix::attachHDC(HDC _hdc)
@@ -120,8 +123,8 @@ void TileMatrix::attachHDC(HDC _hdc)
 void TileMatrix::attachRECT(RECT _rect)
 {
 	rect = _rect;
-	_rect.left += (rect.right - rect.left)*0.3;
-	_rect.top += (rect.bottom - rect.top)*0.3;
+	_rect.left += (rect.right - rect.left)*0.25;
+	_rect.top += (rect.bottom - rect.top)*0.25;
 	RECT temprect;
 	int dim_X_step = (_rect.right - _rect.left) / dim_X;
 	int col_step = (_rect.bottom - _rect.top) / dim_Y;
@@ -151,6 +154,7 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 {
 	if (val == 2 && state == 1) return;
 	int xPos, yPos;
+	char tmpval;
 	RECT tempR;
 	xPos = GET_X_LPARAM(lParam);
 	yPos = GET_Y_LPARAM(lParam);
@@ -162,7 +166,58 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 			tempR = matr[i][j].getRECT();
 			if ((tempR.top<yPos&&tempR.bottom>yPos) &&
 				(tempR.left<xPos&&tempR.right>xPos))
+			{
+				tmpval=matr[i][j].getValue();
+				/*
+				edit mode          game mode
+				0 empty				0 empty
+				1 filled			1 [] visible correct
+									2 X visible correct
+									3  filled invisible
+									4 X visible wrong
+									5 [] visible wrong
+
+				*/
+				if (state == 1)
+				{
+					if (val == tmpval) val = 0;
+				}
+				if (state == 2) 
+				{
+					if (tmpval == 0) 
+					{
+						if (val == 1) val = 5;
+						//if (val == 2) val = 2;
+					}
+					
+					if (tmpval == 3) 
+					{
+						//if (val == 1) val = 1;
+						if (val == 2) val = 4;
+					}
+					if (tmpval == 1) 
+					{
+						if (val == 1) val = 3;
+						if (val == 2) val = 4;
+					}
+					if (tmpval == 2)
+					{
+						if (val == 1) val = 5;
+						if (val == 2) val = 0;
+					}
+					if (tmpval == 4)
+					{
+						//if (val == 1) val = 1;
+						if (val == 2) val = 3;
+					}
+					if (tmpval == 5)
+					{
+						if (val == 1) val = 0;
+						//if (val == 2) val = 2;
+					}
+				}
 				matr[i][j].setValue(val);
+			}
 		}
 	}
 }
@@ -191,6 +246,7 @@ void TileMatrix::restore(std::string filename)
 	for (int i = 0; i < dim_X; i++)
 		for (int j = 0; j < dim_Y; j++) {
 			file >> tempval;
+			if (tempval == 1) tempval = 3;
 			matr[i][j].setValue(tempval);
 		}
 }
@@ -224,7 +280,7 @@ void TileMatrix::countInY() {
 		inMatrixPos = dim_YDM;
 		for (int j = dim_Y; j >= 0; j--)
 		{
-			if (matr[i][j].getValue() == 1) { matr_x[i][inMatrixPos]++; }
+			if (matr[i][j].getValue() == 3|| matr[i][j].getValue() == 1|| matr[i][j].getValue() == 4) { matr_x[i][inMatrixPos]++; }
 			else { if (matr_x[i][inMatrixPos] != 0) inMatrixPos--; }
 		}
 	}
@@ -239,7 +295,7 @@ void TileMatrix::countInX() {
 		inMatrixPos = dim_XDM-1;
 		for (int j = dim_X-1 ;j>=0; j--)
 		{
-			if (matr[j][i].getValue() == 1) { matr_y[inMatrixPos][i]++; }
+			if (matr[j][i].getValue() == 3|| matr[j][i].getValue() == 1|| matr[j][i].getValue() == 4) { matr_y[inMatrixPos][i]++; }
 			else { if (matr_y[inMatrixPos][i] != 0) inMatrixPos--; }
 		}
 	}

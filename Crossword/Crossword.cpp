@@ -1,8 +1,5 @@
-﻿// Crossword.cpp : Определяет точку входа для приложения.
-//
-
-#include "stdafx.h"
-#include "Crossword.h"
+﻿#include <windows.h>
+#include "Resource.h"
 #include"TileMatrix.h"
 #define MAX_LOADSTRING 100
 
@@ -10,11 +7,13 @@
 HINSTANCE hInst;                                // текущий экземпляр
 WCHAR szTitle[MAX_LOADSTRING];                  // Текст строки заголовка
 WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса главного окна
-TileMatrix matr(9, 12);
-HWND editor_button, game_button, about_button;
-HMENU editor_menu, game_menu;
+TileMatrix matr(9, 12);							// игровое поле
+HWND editor_button, game_button, about_button;  // кнопки в главном меню
+HMENU editor_menu, game_menu;					// панели меню
+HBITMAP hBitmap;
 CHAR win_state = 0;//0-mainmenu,1-editor,2-game;
-// Отправить объявления функций, включенных в этот модуль кода:
+
+
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -30,29 +29,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // TODO: Разместите код здесь.
 
-    // Инициализация глобальных строк
+    // Загрузка ресурсов
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_CROSSWORD, szWindowClass, MAX_LOADSTRING);
+	hBitmap = (HBITMAP)LoadImage(NULL, L"pic.bmp",IMAGE_BITMAP,0, 0,LR_LOADFROMFILE);
+	editor_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
+	game_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU2));
     MyRegisterClass(hInstance);
 
-    // Выполнить инициализацию приложения:
     if (!InitInstance (hInstance, nCmdShow))
     {
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CROSSWORD));
-
     MSG msg;
-
-    // Цикл основного сообщения:
     while (GetMessage(&msg, nullptr, 0, 0))
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
+
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        }
     }
 
     return (int) msg.wParam;
@@ -78,24 +73,15 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CROSSWORD));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground =  (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = 0;
+	wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName   = 0;
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
 
-//
-//   ФУНКЦИЯ: InitInstance(HINSTANCE, int)
-//
-//   ЦЕЛЬ: Сохраняет маркер экземпляра и создает главное окно
-//
-//   КОММЕНТАРИИ:
-//
-//        В этой функции маркер экземпляра сохраняется в глобальной переменной, а также
-//        создается и выводится главное окно программы.
-//
+
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Сохранить маркер экземпляра в глобальной переменной
@@ -111,30 +97,30 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
    //
+   //
    editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
    10, 10, 120, 30, hWnd, (HMENU)IDB_EDITOR, hInstance, NULL);
    game_button = CreateWindow(L"button", L"Играть", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
    10, 50, 120, 30, hWnd, (HMENU)IDB_GAME, hInstance, NULL);
    about_button = CreateWindow(L"button", L"О программе", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 	   10, 90, 120, 30, hWnd, (HMENU)IDB_ABOUT, hInstance, NULL);
-   editor_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
-   game_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU2));
+
    RECT r;
-   r.bottom = 400;
+   r.bottom = 500;
    r.top = 10;
    r.left = 10;
    r.right = 400;
   // GetClientRect(hWnd,&r);
    matr.attachRECT(r);
+   //
+   //
    return TRUE;
 }
 
 
-//
-int xPos=0, yPos=0;
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	HANDLE hBitmap, hOldBitmap;
+	HANDLE hOldBitmap;
 	HDC  hCompatibleDC;
 	BITMAP Bitmap;
 	RECT Rect;
@@ -186,7 +172,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 	case WM_LBUTTONDOWN:
 	{
-		matr.setValueByPress(lParam, 1);
+		if(win_state==1) matr.setValueByPress(lParam, 3);///////////
+		else matr.setValueByPress(lParam, 1);
 		InvalidateRect(hWnd, NULL, TRUE);
 		break; }
 	case WM_RBUTTONDOWN:
@@ -194,14 +181,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		matr.setValueByPress(lParam, 2);
 		InvalidateRect(hWnd, NULL, TRUE);
 		break; }
+	case WM_MBUTTONDOWN: {
+		matr.highlightErrors();
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	}
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            
-			//hBitmap = (HBITMAP)LoadImage(NULL, L"pic.bmp",
-			//	IMAGE_BITMAP,
-			//	0, 0,
-			//	LR_LOADFROMFILE);
 			HDC hdc = BeginPaint(hWnd, &ps);
 
 			//hCompatibleDC = CreateCompatibleDC(hdc);
