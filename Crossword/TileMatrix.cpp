@@ -1,10 +1,10 @@
 #include "TileMatrix.h"
 template<class T>
-T ** TileMatrix::memAlloc(int _dim_Xs,int _cols)
+T ** TileMatrix::memAlloc(int _dim_Xs,int _dimYs)
 {
 	T** dest = new T*[_dim_Xs];
 	for (int i = 0; i < _dim_Xs; i++)
-		dest[i] = new T[_cols];
+		dest[i] = new T[_dimYs];
 	return dest;
 }
 
@@ -75,6 +75,7 @@ TileMatrix::TileMatrix():mem_allocated(false)
 
 TileMatrix::TileMatrix(int x,int y):dim_X(x),dim_Y(y)
 {
+	if (x == 0 || y == 0) return;
 	createTables();
 }
 
@@ -103,13 +104,14 @@ void TileMatrix::Draw()
 	fillMatrix(matr_y, dim_XDM, dim_Y);
 	countInY();
 	countInX();
+	bool mode = (state == 1) ? true : false;
 	//int new_dim_Y=deleteZeros(matr_x, dim_X, dim_YDM,true);
 	//int new_dim_X = deleteZeros(matr_y, dim_XDM, dim_Y);
 	DrawMatrix(matr_x, dim_X, dim_YDM, topRect);
 	DrawMatrix(matr_y, dim_XDM, dim_Y, leftRect);
 	for (int i = 0; i < dim_X; i++)
 		for (int j = 0; j < dim_Y; j++)
-			matr[i][j].Draw(hlErr);
+			matr[i][j].Draw(hlErr,mode);
 }
 
 void TileMatrix::attachHDC(HDC _hdc)
@@ -123,6 +125,7 @@ void TileMatrix::attachHDC(HDC _hdc)
 void TileMatrix::attachRECT(RECT _rect)
 {
 	rect = _rect;
+	if (dim_X == 0 || dim_Y == 0) return;
 	_rect.left += (rect.right - rect.left)*0.25;
 	_rect.top += (rect.bottom - rect.top)*0.25;
 	RECT temprect;
@@ -222,7 +225,7 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 	}
 }
 
-void TileMatrix::save(std::string filename)
+void TileMatrix::save(LPWSTR filename)
 {
 	std::ofstream file(filename);
 	file << dim_X << " " << dim_Y<<"\n";
@@ -232,11 +235,11 @@ void TileMatrix::save(std::string filename)
 
 }
 
-void TileMatrix::restore(std::string filename)
+void TileMatrix::restore(LPWSTR filename)
 {
 	std::ifstream file(filename);
-	file >> dim_X >> dim_Y;
 	destroyTables();
+	file >> dim_X >> dim_Y;
 	createTables();
 	int tempval;
 	attachHDC(hdc);
@@ -251,10 +254,29 @@ void TileMatrix::restore(std::string filename)
 		}
 }
 
+void TileMatrix::create(int dx, int dy) {
+	destroyTables();
+	dim_X = dx, dim_Y = dy;
+	createTables();
+	attachHDC(hdc);
+	attachRECT(rect);
+}
+
+int TileMatrix::returnx()
+{
+	return dim_X;
+}
+
+int TileMatrix::returny()
+{
+	return dim_Y;
+}
+
 
 
 void TileMatrix::DrawMatrix(int** matrix, int _x, int _y, RECT _rect)
 {
+	if (dim_X == 0 || dim_Y == 0) return;
 	RECT textrect;
 	std::wstring tmpstr;
 	int rect_height = (_rect.bottom - _rect.top), rect_width = (_rect.right - _rect.left);
