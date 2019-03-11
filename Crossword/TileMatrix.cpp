@@ -1,4 +1,5 @@
 #include "TileMatrix.h"
+#include"resource.h"
 template<class T>
 T ** TileMatrix::memAlloc(int _dim_Xs,int _dimYs)
 {
@@ -84,6 +85,13 @@ void TileMatrix::setValue(int x, int y, int val)
 	matr[x][y].setValue(val);
 }
 
+void TileMatrix::clean()
+{
+	destroyTables();
+	dim_X = 0;
+	dim_Y = 0;
+}
+
 int TileMatrix::getValue(int x, int y)
 {
 	return matr[x][y].getValue();
@@ -109,17 +117,33 @@ void TileMatrix::Draw()
 	//int new_dim_X = deleteZeros(matr_y, dim_XDM, dim_Y);
 	DrawMatrix(matr_x, dim_X, dim_YDM, topRect);
 	DrawMatrix(matr_y, dim_XDM, dim_Y, leftRect);
-	for (int i = 0; i < dim_X; i++)
-		for (int j = 0; j < dim_Y; j++)
-			matr[i][j].Draw(hlErr,mode);
+	int fill_inv = 0;
+	int wrongs = 0;
+	for (int i = 0; i < dim_X; i++) {
+		for (int j = 0; j < dim_Y; j++) {
+			matr[i][j].Draw(hlErr, mode);
+			if (matr[i][j].getValue() == 3) fill_inv++;
+			if (matr[i][j].getValue() == 4 || matr[i][j].getValue() == 5) wrongs++;
+		}
+	}
+	if (fill_inv == 0 && dim_X > 0 && state == 2 && wrongs == 0) SendMessage(hwnd, WM_COMMAND,IDB_MAINMENU,0);
 }
 
 void TileMatrix::attachHDC(HDC _hdc)
 {
 	hdc = _hdc;
 	for (int i = 0; i < dim_X; i++)
-		for (int j = 0; j < dim_Y; j++)
-			matr[i][j].attachHDC(_hdc);
+		for (int j = 0; j < dim_Y; j++) {
+			{
+				matr[i][j].attachHDC(_hdc);
+				matr[i][j].attachHWND(hwnd);
+			}
+		}
+}
+
+void TileMatrix::attachHWND(HWND _hwnd)
+{
+	hwnd = _hwnd;
 }
 
 void TileMatrix::attachRECT(RECT _rect)
@@ -161,7 +185,6 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 	RECT tempR;
 	xPos = GET_X_LPARAM(lParam);
 	yPos = GET_Y_LPARAM(lParam);
-	
 	if (xPos > rect.right || xPos<rect.left || yPos>rect.bottom || yPos < rect.top) return;
 	for (int i = 0; i < dim_X; i++) {
 		for (int j = 0; j < dim_Y; j++) {
@@ -172,7 +195,7 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 			{
 				tmpval=matr[i][j].getValue();
 				/*
-				edit mode          game mode
+				1edit mode          2game mode
 				0 empty				0 empty
 				1 filled			1 [] visible correct
 									2 X visible correct
@@ -242,14 +265,11 @@ void TileMatrix::restore(LPWSTR filename)
 	file >> dim_X >> dim_Y;
 	createTables();
 	int tempval;
-	attachHDC(hdc);
+	attachHDC(GetDC(hwnd));
 	attachRECT(rect);
-	char junk;
-	file >> junk;
 	for (int i = 0; i < dim_X; i++)
 		for (int j = 0; j < dim_Y; j++) {
 			file >> tempval;
-			if (tempval == 1) tempval = 3;
 			matr[i][j].setValue(tempval);
 		}
 }
@@ -258,7 +278,7 @@ void TileMatrix::create(int dx, int dy) {
 	destroyTables();
 	dim_X = dx, dim_Y = dy;
 	createTables();
-	attachHDC(hdc);
+	attachHDC(GetDC(hwnd));
 	attachRECT(rect);
 }
 
@@ -290,7 +310,7 @@ void TileMatrix::DrawMatrix(int** matrix, int _x, int _y, RECT _rect)
 			textrect.bottom = jk + step_y;
 			tmpstr=std::to_wstring(matrix[i][j]);
 			if (matrix[i][j] == 0) tmpstr = L"";
-			DrawText(hdc, tmpstr.c_str(), tmpstr.length(), &textrect, DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+			DrawText(GetDC(hwnd), tmpstr.c_str(), tmpstr.length(), &textrect, DT_CENTER|DT_VCENTER|DT_SINGLELINE);
 		}
 	}
 }

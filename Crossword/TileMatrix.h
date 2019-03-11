@@ -14,6 +14,7 @@ private:
 	int** matr_x;
 	int** matr_y;
 	HDC hdc;
+	HWND hwnd;
 	RECT rect;
 	int dim_X, dim_Y;
 	int dim_XDM, dim_YDM;
@@ -27,14 +28,17 @@ private:
 	void memRelease(T** dest, int _size);
 	void fillMatrix(int**, int _r, int _c);
 	int deleteZeros(int**,int,int,bool);
+	int tiles;
 public:
 	TileMatrix();
 	TileMatrix(int x,int y);
 	void setValue(int x, int y, int val);
+	void clean();
 	int getValue(int x, int y);
 	void highlightErrors();
 	void Draw();
 	void attachHDC(HDC _hdc);
+	void attachHWND(HWND _hwnd);
 	void attachRECT(RECT _rect);
 	char getState();
 	void setState(char);

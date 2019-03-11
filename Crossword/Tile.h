@@ -6,6 +6,7 @@ private:
 	char value;
 	RECT place;
 	HDC _hdc;
+	HWND hwnd;
 public:
 	void setValue(char _val);
 	char getValue();
@@ -13,6 +14,7 @@ public:
 	void Draw(bool errHighlight,bool mode);
 	void attachHDC(HDC hdc);
 	void attachRECT(RECT rect);
+	void attachHWND(HWND _hwnd);
 	Tile();
 	~Tile();
 };

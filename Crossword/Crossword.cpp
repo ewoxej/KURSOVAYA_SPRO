@@ -121,6 +121,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    rect_calc(&r);
    //GetClientRect(hWnd,&r);
    matr.attachRECT(r);
+   matr.attachHWND(hWnd);
    //
    //
    return TRUE;
@@ -183,6 +184,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				matr.save((LPWSTR)(std::wstring(opened_path) + L".jcw").c_str());
 				break;
 			}
+			case ID_GAMESAVEMENU:
+			{
+				FileSaveDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Сохранение (*.game)\0*.game\0\0");
+				//MessageBox(hWnd, (LPWSTR)(std::wstring(opened_path) + L".game").c_str(), L"msg", MB_OK);
+				matr.save((LPWSTR)(std::wstring(opened_path) + L".game").c_str());
+				break;
+			}
+			case ID_GAMELOADMENU:
+			{
+				FileOpenDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Сохранение (*.game)\0*.game\0\0");
+				//MessageBox(hWnd, opened_path, L"msg", MB_OK);
+				matr.restore(opened_path);
+				matr_dimX = matr.returnx();
+				matr_dimY = matr.returny();
+				rect_calc(&r);
+				matr.attachRECT(r);
+				break;
+			}
 			case ID_CREATEMENU:
 			{
 				DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd,SizeDlg);
@@ -193,6 +212,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			case IDB_MAINMENU:{
 				matr.setState(0);
+				matr.clean();
 				win_state = 0;
 				SetMenu(hWnd, NULL);
 				   editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -216,16 +236,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		if(win_state==1) matr.setValueByPress(lParam, 3);///////////
 		else matr.setValueByPress(lParam, 1);
-		InvalidateRect(hWnd, NULL, TRUE);
+		if(win_state==2)
+		InvalidateRect(hWnd, NULL, FALSE);
+		else
+			InvalidateRect(hWnd, NULL,TRUE);
 		break; }
 	case WM_RBUTTONDOWN:
 	{
 		matr.setValueByPress(lParam, 2);
-		InvalidateRect(hWnd, NULL, TRUE);
+		if(win_state==2)
+		InvalidateRect(hWnd, NULL, FALSE);
 		break; }
 	case WM_MBUTTONDOWN: {
 		matr.highlightErrors();
-		InvalidateRect(hWnd, NULL, TRUE);
+		if (win_state == 2)
+		InvalidateRect(hWnd, NULL, FALSE);
+		break;
+	}
+	case WM_MBUTTONUP: {
+		matr.highlightErrors();
+		if (win_state == 2)
+		InvalidateRect(hWnd, NULL, FALSE);
 		break;
 	}
     case WM_PAINT:

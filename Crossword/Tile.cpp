@@ -35,6 +35,7 @@ void Tile::Draw(bool errHighlight,bool mode)//true edit,false game
 	}
 	DeleteObject((HGDIOBJ)pn);
 	DeleteObject((HGDIOBJ)pn_gr);
+	//InvalidateRect(hwnd, &place, FALSE);
 }
 
 void Tile::attachHDC(HDC hdc)
@@ -45,6 +46,11 @@ void Tile::attachHDC(HDC hdc)
 void Tile::attachRECT(RECT rect)
 {
 	place = rect;
+}
+
+void Tile::attachHWND(HWND _hwnd)
+{
+	hwnd = _hwnd;
 }
 
 Tile::Tile():value(0)
