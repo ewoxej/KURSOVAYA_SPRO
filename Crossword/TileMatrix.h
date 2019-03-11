@@ -39,8 +39,11 @@ public:
 	char getState();
 	void setState(char);
 	void setValueByPress(LPARAM lParam, int val);
-	void save(std::string filename);
-	void restore(std::string filename);
+	void save(LPWSTR filename);
+	void restore(LPWSTR filename);
+	void create(int, int);
+	int returnx();
+	int returny();
 	void countInY();
 	void countInX();
 	void DrawMatrix(int**,int,int,RECT _rect);

@@ -10,7 +10,7 @@ public:
 	void setValue(char _val);
 	char getValue();
 	RECT getRECT();
-	void Draw(bool errHighlight=0);
+	void Draw(bool errHighlight,bool mode);
 	void attachHDC(HDC hdc);
 	void attachRECT(RECT rect);
 	Tile();
