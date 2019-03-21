@@ -9,6 +9,16 @@ T ** TileMatrix::memAlloc(int _dim_Xs,int _dimYs)
 	return dest;
 }
 
+template <class T>
+void TileMatrix::memRelease(T ** dest, int _size)
+{
+	{
+		for (int i = 0; i < _size; i++)
+			delete[] dest[i];
+		delete[] dest;
+	}
+}
+
 void TileMatrix::createTables()
 {
 	dim_XDM = 0, dim_YDM = 0;
@@ -28,17 +38,11 @@ void TileMatrix::destroyTables()
 	memRelease(matr, dim_X);
 	memRelease(matr_x, dim_X);
 	memRelease(matr_y, dim_XDM);
+	dim_X = 0;
+	dim_Y = 0;
 	mem_allocated = false;
 }
-template <class T>
-void TileMatrix::memRelease(T ** dest, int _size)
-{
-	{
-		for (int i = 0; i < _size; i++)
-			delete[] dest[i];
-		delete[] dest;
-	}
-}
+
 
 void TileMatrix::fillMatrix(int ** matr, int _r, int _c)
 {
@@ -47,26 +51,15 @@ void TileMatrix::fillMatrix(int ** matr, int _r, int _c)
 			matr[i][j] = 0;
 }
 
-void TileMatrix::highlightErrors()
+void TileMatrix::rectCalculate(LPRECT leftRect, LPRECT topRect)
 {
-	hlErr = !hlErr;
-}
 
-int TileMatrix::deleteZeros(int ** matr, int dim_Xs, int dim_Ys,bool indim_Xs)
-{
-	int count = 0;
-	int result=0;
-	if (indim_Xs) 
-	{
-		for (int i = 0; i < dim_Xs; i++) {
-			for (int j = 0; j < dim_Ys; j++) {
-				if (matr[j][i] != 0) count++;
-		}
-			if (count > result) result = count;
-			count = 0;
-		}
-	}
-	return result;
+	int width = (rect.right - rect.left);
+	int height = (rect.bottom - rect.top);
+	topRect->bottom = rect.top + (height*0.25);
+	topRect->left += (width*0.25);
+	leftRect->right = rect.left + (width*0.25);
+	leftRect->top += (height*0.25);
 }
 
 TileMatrix::TileMatrix():mem_allocated(false)
@@ -80,66 +73,45 @@ TileMatrix::TileMatrix(int x,int y):dim_X(x),dim_Y(y)
 	createTables();
 }
 
-void TileMatrix::setValue(int x, int y, int val)
-{
-	matr[x][y].setValue(val);
-}
+void TileMatrix::InitDraw() {
 
-void TileMatrix::clean()
-{
-	destroyTables();
-	dim_X = 0;
-	dim_Y = 0;
 }
-
-int TileMatrix::getValue(int x, int y)
+void TileMatrix::Draw(bool highlightErrors)
 {
-	return matr[x][y].getValue();
-}
-
-void TileMatrix::Draw()
-{
+	if (state == STATE_MAINMENU) return;
+	/////////////////////////////////
 	RECT leftRect = rect;
 	RECT topRect = rect;
-	int width = (rect.right - rect.left);
-	int height = (rect.bottom - rect.top);
-	topRect.bottom = rect.top + (height*0.25);
-	topRect.left += (width*0.25);
-	leftRect.right = rect.left + (width*0.25);
-	leftRect.top += (height*0.25);
-	/////////////////////////////////
-	fillMatrix(matr_x, dim_X, dim_YDM);
-	fillMatrix(matr_y, dim_XDM, dim_Y);
-	countInY();
-	countInX();
-	bool mode = (state == 1) ? true : false;
-	//int new_dim_Y=deleteZeros(matr_x, dim_X, dim_YDM,true);
-	//int new_dim_X = deleteZeros(matr_y, dim_XDM, dim_Y);
-	DrawMatrix(matr_x, dim_X, dim_YDM, topRect);
-	DrawMatrix(matr_y, dim_XDM, dim_Y, leftRect);
+		rectCalculate(&leftRect, &topRect);
+	if (state == STATE_GAME&&initmatrix) {
+
+		fillMatrix(matr_x, dim_X, dim_YDM);
+		fillMatrix(matr_y, dim_XDM, dim_Y);
+		countInY();
+		countInX();
+		initmatrix = false;
+	}
+	bool mode = (state == STATE_EDITOR) ? true : false;
 	int fill_inv = 0;
 	int wrongs = 0;
+	hdc = GetDC(hwnd);
 	for (int i = 0; i < dim_X; i++) {
 		for (int j = 0; j < dim_Y; j++) {
-			matr[i][j].Draw(hlErr, mode);
-			if (matr[i][j].getValue() == 3) fill_inv++;
-			if (matr[i][j].getValue() == 4 || matr[i][j].getValue() == 5) wrongs++;
+
+			matr[i][j].attachHDC(hdc);
+			matr[i][j].Draw(highlightErrors, mode);
+			if (matr[i][j].getValue() == TILE_FILLED) fill_inv++;
+			if (matr[i][j].getValue() == TILE_CROSSED_WRONG || matr[i][j].getValue() == TILE_MARKED_WRONG) wrongs++;
 		}
 	}
-	if (fill_inv == 0 && dim_X > 0 && state == 2 && wrongs == 0) SendMessage(hwnd, WM_COMMAND,IDB_MAINMENU,0);
+	if (STATE_GAME) {
+		DrawMatrix(matr_x, dim_X, dim_YDM, topRect);
+		DrawMatrix(matr_y, dim_XDM, dim_Y, leftRect);
+	}
+	ReleaseDC(hwnd,hdc);
+	if (fill_inv == 0 && dim_X > 0 && state == STATE_GAME && wrongs == 0) SendMessage(hwnd, WM_COMMAND,IDB_WIN,0);
 }
 
-void TileMatrix::attachHDC(HDC _hdc)
-{
-	hdc = _hdc;
-	for (int i = 0; i < dim_X; i++)
-		for (int j = 0; j < dim_Y; j++) {
-			{
-				matr[i][j].attachHDC(_hdc);
-				matr[i][j].attachHWND(hwnd);
-			}
-		}
-}
 
 void TileMatrix::attachHWND(HWND _hwnd)
 {
@@ -163,8 +135,6 @@ void TileMatrix::attachRECT(RECT _rect)
 			temprect.right = i + dim_X_step;
 			matr[ik][jk].attachRECT(temprect);
 		}
-
-
 }
 
 char TileMatrix::getState()
@@ -179,7 +149,7 @@ void TileMatrix::setState(char _st)
 
 void TileMatrix::setValueByPress(LPARAM lParam,int val)
 {
-	if (val == 2 && state == 1) return;
+	if (val == TILE_CROSSED && state == STATE_EDITOR) return;
 	int xPos, yPos;
 	char tmpval;
 	RECT tempR;
@@ -194,21 +164,11 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 				(tempR.left<xPos&&tempR.right>xPos))
 			{
 				tmpval=matr[i][j].getValue();
-				/*
-				1edit mode          2game mode
-				0 empty				0 empty
-				1 filled			1 [] visible correct
-									2 X visible correct
-									3  filled invisible
-									4 X visible wrong
-									5 [] visible wrong
-
-				*/
-				if (state == 1)
+				if (state == STATE_EDITOR)
 				{
-					if (val == tmpval) val = 0;
+					if (val == tmpval) val = TILE_EMPTY;
 				}
-				if (state == 2) 
+				if (state == STATE_GAME) 
 				{
 					if (tmpval == 0) 
 					{
@@ -260,12 +220,13 @@ void TileMatrix::save(LPWSTR filename)
 
 void TileMatrix::restore(LPWSTR filename)
 {
+	initmatrix = true;
+	InvalidateRect(hwnd, NULL, TRUE);
 	std::ifstream file(filename);
 	destroyTables();
 	file >> dim_X >> dim_Y;
 	createTables();
 	int tempval;
-	attachHDC(GetDC(hwnd));
 	attachRECT(rect);
 	for (int i = 0; i < dim_X; i++)
 		for (int j = 0; j < dim_Y; j++) {
@@ -275,10 +236,11 @@ void TileMatrix::restore(LPWSTR filename)
 }
 
 void TileMatrix::create(int dx, int dy) {
+	initmatrix = true;
+	InvalidateRect(hwnd, NULL, TRUE);
 	destroyTables();
 	dim_X = dx, dim_Y = dy;
 	createTables();
-	attachHDC(GetDC(hwnd));
 	attachRECT(rect);
 }
 
@@ -310,7 +272,7 @@ void TileMatrix::DrawMatrix(int** matrix, int _x, int _y, RECT _rect)
 			textrect.bottom = jk + step_y;
 			tmpstr=std::to_wstring(matrix[i][j]);
 			if (matrix[i][j] == 0) tmpstr = L"";
-			DrawText(GetDC(hwnd), tmpstr.c_str(), tmpstr.length(), &textrect, DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+			DrawText(hdc, tmpstr.c_str(), tmpstr.length(), &textrect, DT_CENTER|DT_VCENTER|DT_SINGLELINE);
 		}
 	}
 }
@@ -322,7 +284,9 @@ void TileMatrix::countInY() {
 		inMatrixPos = dim_YDM;
 		for (int j = dim_Y; j >= 0; j--)
 		{
-			if (matr[i][j].getValue() == 3|| matr[i][j].getValue() == 1|| matr[i][j].getValue() == 4) { matr_x[i][inMatrixPos]++; }
+			if (matr[i][j].getValue() == TILE_FILLED||
+				matr[i][j].getValue() == TILE_MARKED||
+				matr[i][j].getValue() == TILE_CROSSED_WRONG) { matr_x[i][inMatrixPos]++; }
 			else { if (matr_x[i][inMatrixPos] != 0) inMatrixPos--; }
 		}
 	}
@@ -331,13 +295,14 @@ void TileMatrix::countInY() {
 
 void TileMatrix::countInX() {
 	int inMatrixPos;
-	int counter = 0;
-	for (int i = dim_Y-1; i >=0; i--)
+	for (int i = 0; i <dim_Y-1; i++)
 	{
 		inMatrixPos = dim_XDM-1;
 		for (int j = dim_X-1 ;j>=0; j--)
 		{
-			if (matr[j][i].getValue() == 3|| matr[j][i].getValue() == 1|| matr[j][i].getValue() == 4) { matr_y[inMatrixPos][i]++; }
+			if (matr[j][i].getValue() == TILE_FILLED||
+				matr[j][i].getValue() == TILE_MARKED||
+				matr[j][i].getValue() == TILE_CROSSED_WRONG) { matr_y[inMatrixPos][i]++; }
 			else { if (matr_y[inMatrixPos][i] != 0) inMatrixPos--; }
 		}
 	}

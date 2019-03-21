@@ -6,31 +6,31 @@
 #define MAX_LOADSTRING 100
 
 // Глобальные переменные:
-HINSTANCE hInst;                                // текущий экземпляр
-WCHAR szTitle[MAX_LOADSTRING];                  // Текст строки заголовка
-WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса главного окна
-INT matr_dimX=0, matr_dimY=0;
-TileMatrix matr(matr_dimX, matr_dimY);							// игровое поле
-HWND editor_button, game_button, about_button;  // кнопки в главном меню
-HMENU editor_menu, game_menu;					// панели меню
-HBITMAP hBitmap;
-CHAR win_state = 0;//0-mainmenu,1-editor,2-game;
-TCHAR opened_path[255];
-RECT r;
+HINSTANCE	hInst;                               // текущий экземпляр
+WCHAR		szTitle[MAX_LOADSTRING];             // Текст строки заголовка
+WCHAR		szWindowClass[MAX_LOADSTRING];       // имя класса главного окна
+INT			matr_dimX=0, 
+			matr_dimY=0;						 // размеры игрового поля
+TileMatrix	matr(matr_dimX, matr_dimY);			 // игровое поле
+TileMatrix  title(0, 0);
+HWND		editor_button,
+			game_button,
+			about_button;						 // кнопки в главном меню
+HMENU		editor_menu,
+			game_menu;							 // панели меню
+TCHAR		opened_path[MAX_LOADSTRING];		 // путь к открытому файлу
+RECT		field_rect;							 // прямоугльник игрового поля
 
+//Прототипы функций:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    SizeDlg(HWND, UINT, WPARAM, LPARAM);
-void rect_calc(LPRECT rc) {
-	rc->bottom = 10 + (30 * matr_dimY);
-	rc->top = 10;
-	rc->left = 10;
-	rc->right = 10 + (30 * matr_dimX);
-}
-BOOL FileOpenDlg(HWND hWnd, LPWSTR pstrFileName,LPWSTR filters=NULL);
-BOOL FileSaveDlg(HWND hWnd, LPWSTR pstrFileName, LPWSTR filters = NULL);
+BOOL CommonFileDlg(HWND hWnd, LPWSTR pstrFileName, LPWSTR filters,BOOL open);
+void MainMenu(HWND hWnd);
+void calculateRect(HWND hWnd,LPRECT rc);
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -39,12 +39,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: Разместите код здесь.
-
     // Загрузка ресурсов
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_CROSSWORD, szWindowClass, MAX_LOADSTRING);
-	hBitmap = (HBITMAP)LoadImage(NULL, L"pic.bmp",IMAGE_BITMAP,0, 0,LR_LOADFROMFILE);
 	editor_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU1));
 	game_menu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENU2));
     MyRegisterClass(hInstance);
@@ -108,32 +105,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
-   //
-   //
-   editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-   10, 10, 120, 30, hWnd, (HMENU)IDB_EDITOR, hInstance, NULL);
-   game_button = CreateWindow(L"button", L"Играть", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-   10, 50, 120, 30, hWnd, (HMENU)IDB_GAME, hInstance, NULL);
-   about_button = CreateWindow(L"button", L"О программе", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-	   10, 90, 120, 30, hWnd, (HMENU)IDB_ABOUT, hInstance, NULL);
-
-
-   rect_calc(&r);
-   //GetClientRect(hWnd,&r);
-   matr.attachRECT(r);
+   MainMenu(hWnd);
+   calculateRect(hWnd,&field_rect);
+   matr.attachRECT(field_rect);
    matr.attachHWND(hWnd);
-   //
-   //
    return TRUE;
 }
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	HANDLE hOldBitmap;
-	HDC  hCompatibleDC;
-	BITMAP Bitmap;
-	RECT Rect;
     switch (message)
     {
     case WM_COMMAND:
@@ -144,31 +125,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 			case IDB_EDITOR:
 			{
-				win_state = 1;
-				matr.setState(1);
+				matr.setState(STATE_EDITOR);
 				SetMenu(hWnd, editor_menu);
 				DestroyWindow(editor_button);
 				DestroyWindow(game_button);
 				DestroyWindow(about_button);
-				break; }
+				break;
+			}
 			case IDB_GAME:
 			{
-				win_state = 2;
-				matr.setState(2);
+				matr.setState(STATE_GAME);
 				SetMenu(hWnd, game_menu);
 				DestroyWindow(editor_button);
 				DestroyWindow(game_button);
 				DestroyWindow(about_button);
-				break; }
+				break;
+			}
 			case ID_OPENMENU:
 			{
-				FileOpenDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Японский кроссворд (*.jcw)\0*.jcw\0\0");
-				MessageBox(hWnd, opened_path, L"msg", MB_OK);
+				CommonFileDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Японский кроссворд (*.jcw)\0*.jcw\0\0",TRUE);
 				matr.restore(opened_path);
 				matr_dimX = matr.returnx();
 				matr_dimY = matr.returny();
-				rect_calc(&r);
-				matr.attachRECT(r);
+				calculateRect(hWnd,&field_rect);
+				matr.attachRECT(field_rect);
 				break;
 			}
 			case ID_SAVEMENU:
@@ -179,48 +159,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			case ID_SAVEASMENU:
 			{
-				FileSaveDlg(hWnd, (LPWSTR)&opened_path,(LPWSTR)L"Японский кроссворд (*.jcw)\0*.jcw\0\0");
-				MessageBox(hWnd, (LPWSTR)(std::wstring(opened_path) + L".jcw").c_str(), L"msg", MB_OK);
+				CommonFileDlg(hWnd, (LPWSTR)&opened_path,(LPWSTR)L"Японский кроссворд (*.jcw)\0*.jcw\0\0",FALSE);
 				matr.save((LPWSTR)(std::wstring(opened_path) + L".jcw").c_str());
 				break;
 			}
 			case ID_GAMESAVEMENU:
 			{
-				FileSaveDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Сохранение (*.game)\0*.game\0\0");
-				//MessageBox(hWnd, (LPWSTR)(std::wstring(opened_path) + L".game").c_str(), L"msg", MB_OK);
+				CommonFileDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Сохранение (*.game)\0*.game\0\0",FALSE);
 				matr.save((LPWSTR)(std::wstring(opened_path) + L".game").c_str());
 				break;
 			}
 			case ID_GAMELOADMENU:
 			{
-				FileOpenDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Сохранение (*.game)\0*.game\0\0");
-				//MessageBox(hWnd, opened_path, L"msg", MB_OK);
+				CommonFileDlg(hWnd, (LPWSTR)&opened_path, (LPWSTR)L"Сохранение (*.game)\0*.game\0\0",TRUE);
 				matr.restore(opened_path);
 				matr_dimX = matr.returnx();
 				matr_dimY = matr.returny();
-				rect_calc(&r);
-				matr.attachRECT(r);
+				calculateRect(hWnd,&field_rect);
+				matr.attachRECT(field_rect);
 				break;
 			}
 			case ID_CREATEMENU:
 			{
 				DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd,SizeDlg);
-				rect_calc(&r);
-				matr.attachRECT(r);
+				calculateRect(hWnd,&field_rect);
+				matr.attachRECT(field_rect);
 				matr.create(matr_dimX, matr_dimY);
 				break;
 			}
 			case IDB_MAINMENU:{
-				matr.setState(0);
-				matr.clean();
-				win_state = 0;
-				SetMenu(hWnd, NULL);
-				   editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-   10, 10, 120, 30, hWnd, (HMENU)IDB_EDITOR, hInst, NULL);
-   game_button = CreateWindow(L"button", L"Играть", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-   10, 50, 120, 30, hWnd, (HMENU)IDB_GAME, hInst, NULL);
-   about_button = CreateWindow(L"button", L"О программе", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-	   10, 90, 120, 30, hWnd, (HMENU)IDB_ABOUT, hInst, NULL);
+				MainMenu(hWnd);
+				break;
+			}
+			case IDB_WIN:
+			{
+				SendMessage(hWnd, WM_COMMAND, IDB_MAINMENU, 0);
+				MessageBox(hWnd, L"Победа", L"Поздравляем!Вы разгадали кроссворд", MB_OK);
 				break;
 			}
 			case IDB_ABOUT: {
@@ -234,60 +208,71 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 	case WM_LBUTTONDOWN:
 	{
-		if(win_state==1) matr.setValueByPress(lParam, 3);///////////
-		else matr.setValueByPress(lParam, 1);
-		if(win_state==2)
-		InvalidateRect(hWnd, NULL, FALSE);
-		else
-			InvalidateRect(hWnd, NULL,TRUE);
-		break; }
+		if (matr.getState()== STATE_EDITOR)
+		{
+			matr.setValueByPress(lParam, 3);
+			InvalidateRect(hWnd, NULL, FALSE);
+		}
+		if (matr.getState() == STATE_GAME)
+		{
+			matr.setValueByPress(lParam, 1);
+			InvalidateRect(hWnd, NULL, FALSE);
+		}
+		break;
+	}
 	case WM_RBUTTONDOWN:
 	{
 		matr.setValueByPress(lParam, 2);
-		if(win_state==2)
-		InvalidateRect(hWnd, NULL, FALSE);
-		break; }
-	case WM_MBUTTONDOWN: {
-		matr.highlightErrors();
-		if (win_state == 2)
+		if(matr.getState()==STATE_GAME)
 		InvalidateRect(hWnd, NULL, FALSE);
 		break;
 	}
-	case WM_MBUTTONUP: {
-		matr.highlightErrors();
-		if (win_state == 2)
-		InvalidateRect(hWnd, NULL, FALSE);
+	case WM_MBUTTONDOWN: 
+	{
+		matr.Draw(true);
+		//InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	}
+	case WM_MBUTTONUP: 
+	{
+		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	}
     case WM_PAINT:
         {
-            PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hWnd, &ps);
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		if (matr.getState() == STATE_MAINMENU) {
+		LOGFONT lf{ 70,0,0,0,FW_THIN,0,0,ANSI_CHARSET,OUT_STRING_PRECIS,
+			CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,FIXED_PITCH,FF_MODERN,L"Monospace" };
+		HFONT oldFont;
+		HFONT newFont = CreateFontIndirect(&lf);
 
-			//hCompatibleDC = CreateCompatibleDC(hdc);
+			RECT textrect;
+			RECT headerrect;
+			GetClientRect(hWnd, &textrect);
+			GetClientRect(hWnd, &headerrect);
+			headerrect.bottom = 100;
+			textrect.left = 200;
+			textrect.top += 100;
+			TCHAR mtext[447];
+			LoadStringW(hInst, IDS_MAINTEXT, mtext, 447);
 
-			//hOldBitmap = SelectObject(hCompatibleDC, hBitmap);
-
-			//GetClientRect(hWnd, &Rect);
-			//GetObject(hBitmap, sizeof(Bitmap), &Bitmap);
-			//StretchBlt(hdc, 0, 0, Rect.right, Rect.bottom,
-			//	hCompatibleDC, 0, 0, Bitmap.bmWidth,
-			//	Bitmap.bmHeight, SRCCOPY);
-
-			//SelectObject(hCompatibleDC, hOldBitmap);
-
-			//DeleteObject(hBitmap);
-
-			//DeleteDC(hCompatibleDC);
-					matr.attachHDC(hdc);
-					if(win_state!=0)
+				DrawText(hdc, mtext,
+					447, &textrect, DT_LEFT);
+				oldFont= SelectFont(hdc, newFont);
+				DrawText(hdc, L"Японский кроссворд", 18, &headerrect, DT_CENTER);
+				SelectFont(hdc, oldFont);
+				DeleteFont(newFont);
+			}
 					matr.Draw();
             EndPaint(hWnd, &ps);
         }
         break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
+	case WM_DESTROY:
+	{
+		PostQuitMessage(0);
+	}
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -328,59 +313,70 @@ INT_PTR CALLBACK SizeDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			Edit_GetLine(GetDlgItem(hDlg, IDC_EDIT1), 2, dimxstr, 2);
 			Edit_GetLine(GetDlgItem(hDlg, IDC_EDIT2), 2, dimystr, 2);
-			matr_dimX=std::stoi(std::wstring(dimxstr));
-			matr_dimY=std::stoi(std::wstring(dimystr));
+			if (dimxstr[0] != '\x2')
+			 matr_dimX=std::stoi(std::wstring(dimxstr));
+			if (dimystr[0] != '\x2')
+			 matr_dimY=std::stoi(std::wstring(dimystr));
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
+		}
+		if (LOWORD(wParam) == IDCANCEL)
+		{
+			EndDialog(hDlg, LOWORD(wParam));
 		}
 		break;
 	}
 	return (INT_PTR)FALSE;
 }
 
-BOOL FileOpenDlg(HWND hWnd, LPWSTR pstrFileName, LPWSTR filters) 
+BOOL CommonFileDlg(HWND hWnd, LPWSTR pstrFileName, LPWSTR filters,BOOL open) 
 {
 	OPENFILENAME ofn;
-	//TCHAR szFile[MAX_PATH];
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hWnd;
 	ofn.lpstrFile = pstrFileName;
 	ofn.lpstrFile[0] = '\0';
-	ofn.nMaxFile = 255;
+	ofn.nMaxFile = MAX_LOADSTRING;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFilter = filters;
 	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 255;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-	if (GetOpenFileName(&ofn) == TRUE)
+	if ((open)?GetOpenFileName(&ofn):GetSaveFileName(&ofn))
 	{
 		return 1;
 	}
 	return 0;
 }
 
-BOOL FileSaveDlg(HWND hWnd, LPWSTR pstrFileName,LPWSTR filters)
-{
-	OPENFILENAME ofn;
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = hWnd;
-	ofn.lpstrFile = pstrFileName;
-	ofn.nMaxFile = 255;
-	ofn.lpstrFile[0] = '\0';
-	ofn.nMaxFile = 255;
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFileTitle = NULL;
-	ofn.lpstrFilter = filters;
-	ofn.nMaxFileTitle = 255;
-	//ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+void MainMenu(HWND hWnd) {
+	matr.setState(STATE_MAINMENU);
+	matr.destroyTables();
+	matr.setState(STATE_MAINMENU);
+	SetMenu(hWnd, NULL);
+	editor_button = CreateWindow(L"button", L"Редактор", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+		20, 100, 150, 50, hWnd, (HMENU)IDB_EDITOR, hInst, NULL);
+	game_button = CreateWindow(L"button", L"Играть", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+		20, 160, 150, 50, hWnd, (HMENU)IDB_GAME, hInst, NULL);
+	about_button = CreateWindow(L"button", L"О программе", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+		20, 220, 150, 50, hWnd, (HMENU)IDB_ABOUT, hInst, NULL);
+	opened_path[0] = '\0';
+}
 
-	if (GetSaveFileName(&ofn) == TRUE)
-	{
-		return 1;
-	}
+void calculateRect(HWND hWnd,LPRECT rc) {//передается clientrect и функция правильно выделяет место под кроссворд
+	GetClientRect(hWnd, rc);
+	float value = 0,width_tile=0,height_tile=0;
+	int width = rc->right - rc->left;
+	int height = rc->bottom - rc->top;
+	if(matr_dimX!=0) 
+width_tile = width / matr_dimX;
+	if (matr_dimY != 0)
+		height_tile = height / matr_dimY;
+	if (width_tile >= height_tile)
+		rc->right = height_tile * matr_dimX;
+	else
+		rc->bottom = width_tile * matr_dimY;
 
-	return 0;
+	//height = width * value;
+	//rc->bottom = rc->top + height;
 }

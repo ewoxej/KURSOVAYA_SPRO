@@ -3,41 +3,41 @@
 #include<windowsx.h>
 #include<string>
 #include<fstream>
-#include<vector>
 #include"Tile.h"
+enum :char {
+	STATE_MAINMENU,
+	STATE_EDITOR,
+	STATE_GAME
+};
 class TileMatrix
 {
 private:
+	//variables:
 	char state;
-	bool hlErr;
+	bool mem_allocated;
+	bool initmatrix;
+	int dim_X, dim_Y;
+	int dim_XDM, dim_YDM;
+	RECT rect;
 	Tile** matr;
 	int** matr_x;
 	int** matr_y;
 	HDC hdc;
 	HWND hwnd;
-	RECT rect;
-	int dim_X, dim_Y;
-	int dim_XDM, dim_YDM;
-	int matr_x_mgr, matr_y_mgr;
-	bool mem_allocated;
+	//functions:
 	template<class T>
 	T** memAlloc(int _rows,int _cols);
-	void createTables();
-	void destroyTables();
 	template<class T>
 	void memRelease(T** dest, int _size);
-	void fillMatrix(int**, int _r, int _c);
-	int deleteZeros(int**,int,int,bool);
-	int tiles;
+	void rectCalculate(LPRECT leftrect, LPRECT toprect);
 public:
 	TileMatrix();
+	void createTables();
+	void destroyTables();
+	void fillMatrix(int**, int _r, int _c);
 	TileMatrix(int x,int y);
-	void setValue(int x, int y, int val);
-	void clean();
-	int getValue(int x, int y);
-	void highlightErrors();
-	void Draw();
-	void attachHDC(HDC _hdc);
+	void InitDraw();
+	void Draw(bool highlightErrors=false);
 	void attachHWND(HWND _hwnd);
 	void attachRECT(RECT _rect);
 	char getState();

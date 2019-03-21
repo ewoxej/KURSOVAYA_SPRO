@@ -7,6 +7,7 @@
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
 #define IDM_ABOUT                       104
+#define IDS_MAINTEXT                    104
 #define IDI_CROSSWORD                   107
 #define IDI_SMALL                       108
 #define IDC_CROSSWORD                   109
@@ -18,6 +19,7 @@
 #define IDB_EDITOR                      1001
 #define IDC_CHECK1                      1001
 #define IDB_GAME                        1002
+#define IDB_WIN							10005
 #define IDC_EDIT1                       1002
 #define IDB_ABOUT                       1003
 #define IDC_EDIT2                       1003
