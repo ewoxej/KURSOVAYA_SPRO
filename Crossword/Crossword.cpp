@@ -210,19 +210,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		if (matr.getState()== STATE_EDITOR)
 		{
-			matr.setValueByPress(lParam, 3);
+			matr.setValueByPress(lParam, TILE_FILLED);
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
 		if (matr.getState() == STATE_GAME)
 		{
-			matr.setValueByPress(lParam, 1);
+			matr.setValueByPress(lParam, TILE_MARKED);
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
 		break;
 	}
 	case WM_RBUTTONDOWN:
 	{
-		matr.setValueByPress(lParam, 2);
+		matr.setValueByPress(lParam, TILE_CROSSED);
 		if(matr.getState()==STATE_GAME)
 		InvalidateRect(hWnd, NULL, FALSE);
 		break;
@@ -265,7 +265,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				SelectFont(hdc, oldFont);
 				DeleteFont(newFont);
 			}
-					matr.Draw();
+			matr.Draw();
             EndPaint(hWnd, &ps);
         }
         break;
@@ -376,7 +376,4 @@ width_tile = width / matr_dimX;
 		rc->right = height_tile * matr_dimX;
 	else
 		rc->bottom = width_tile * matr_dimY;
-
-	//height = width * value;
-	//rc->bottom = rc->top + height;
 }

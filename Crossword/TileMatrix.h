@@ -15,10 +15,9 @@ private:
 	//variables:
 	char state;
 	bool mem_allocated;
-	bool initmatrix;
 	int dim_X, dim_Y;
 	int dim_XDM, dim_YDM;
-	RECT rect;
+	RECT rect,topRect,leftRect;
 	Tile** matr;
 	int** matr_x;
 	int** matr_y;
@@ -36,13 +35,13 @@ public:
 	void destroyTables();
 	void fillMatrix(int**, int _r, int _c);
 	TileMatrix(int x,int y);
-	void InitDraw();
 	void Draw(bool highlightErrors=false);
+	void InitializeMatrix();
 	void attachHWND(HWND _hwnd);
 	void attachRECT(RECT _rect);
 	char getState();
 	void setState(char);
-	void setValueByPress(LPARAM lParam, int val);
+	void setValueByPress(LPARAM lParam, char val);
 	void save(LPWSTR filename);
 	void restore(LPWSTR filename);
 	void create(int, int);

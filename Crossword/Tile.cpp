@@ -4,6 +4,7 @@
 void Tile::setValue(char _val)
 {
 value = _val;
+_hdc = nullptr;
 Draw(0, 0);
 }
 
@@ -18,10 +19,11 @@ RECT Tile::getRECT()
 }
 
 
-void Tile::Draw(bool errHighlight,bool mode)//true edit,false game
+void Tile::Draw(bool errHighlight,char mode)//true edit,false game
 {
 	int red_component = 0;
-	if (errHighlight == true &&
+	if (
+		errHighlight == true &&
 		 (value == TILE_CROSSED_WRONG || value == TILE_MARKED_WRONG)
 	   ) 
 			red_component = 255;
@@ -34,7 +36,7 @@ void Tile::Draw(bool errHighlight,bool mode)//true edit,false game
 	HBRUSH main_br = CreateSolidBrush(RGB(red_component, 0, 0));
 	if (value == TILE_MARKED ||
 		value == TILE_MARKED_WRONG||
-		(value==TILE_FILLED&&mode)
+		(value==TILE_FILLED&&mode==1)
 	   )
 		FillRect(_hdc, &place, main_br);
 	if (value == TILE_CROSSED||value==TILE_CROSSED_WRONG) 

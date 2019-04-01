@@ -1,5 +1,6 @@
 #include "TileMatrix.h"
 #include"resource.h"
+#define COUNT_MATRIX_RATIO 0.25
 template<class T>
 T ** TileMatrix::memAlloc(int _dim_Xs,int _dimYs)
 {
@@ -56,10 +57,10 @@ void TileMatrix::rectCalculate(LPRECT leftRect, LPRECT topRect)
 
 	int width = (rect.right - rect.left);
 	int height = (rect.bottom - rect.top);
-	topRect->bottom = rect.top + (height*0.25);
-	topRect->left += (width*0.25);
-	leftRect->right = rect.left + (width*0.25);
-	leftRect->top += (height*0.25);
+	topRect->bottom = rect.top + (height*COUNT_MATRIX_RATIO);
+	topRect->left += (width*COUNT_MATRIX_RATIO);
+	leftRect->right = rect.left + (width*COUNT_MATRIX_RATIO);
+	leftRect->top += (height*COUNT_MATRIX_RATIO);
 }
 
 TileMatrix::TileMatrix():mem_allocated(false)
@@ -73,38 +74,32 @@ TileMatrix::TileMatrix(int x,int y):dim_X(x),dim_Y(y)
 	createTables();
 }
 
-void TileMatrix::InitDraw() {
-
+void TileMatrix::InitializeMatrix() {
+	leftRect = rect;
+	topRect = rect;
+	rectCalculate(&leftRect, &topRect);
+		fillMatrix(matr_x, dim_X, dim_YDM);
+		fillMatrix(matr_y, dim_XDM, dim_Y);
+		countInY();
+		countInX();
 }
 void TileMatrix::Draw(bool highlightErrors)
 {
 	if (state == STATE_MAINMENU) return;
 	/////////////////////////////////
-	RECT leftRect = rect;
-	RECT topRect = rect;
-		rectCalculate(&leftRect, &topRect);
-	if (state == STATE_GAME&&initmatrix) {
-
-		fillMatrix(matr_x, dim_X, dim_YDM);
-		fillMatrix(matr_y, dim_XDM, dim_Y);
-		countInY();
-		countInX();
-		initmatrix = false;
-	}
-	bool mode = (state == STATE_EDITOR) ? true : false;
 	int fill_inv = 0;
 	int wrongs = 0;
 	hdc = GetDC(hwnd);
 	for (int i = 0; i < dim_X; i++) {
 		for (int j = 0; j < dim_Y; j++) {
-
 			matr[i][j].attachHDC(hdc);
-			matr[i][j].Draw(highlightErrors, mode);
+			matr[i][j].Draw(highlightErrors, state);
 			if (matr[i][j].getValue() == TILE_FILLED) fill_inv++;
 			if (matr[i][j].getValue() == TILE_CROSSED_WRONG || matr[i][j].getValue() == TILE_MARKED_WRONG) wrongs++;
 		}
 	}
-	if (STATE_GAME) {
+	if (STATE_GAME) 
+	{
 		DrawMatrix(matr_x, dim_X, dim_YDM, topRect);
 		DrawMatrix(matr_y, dim_XDM, dim_Y, leftRect);
 	}
@@ -122,8 +117,8 @@ void TileMatrix::attachRECT(RECT _rect)
 {
 	rect = _rect;
 	if (dim_X == 0 || dim_Y == 0) return;
-	_rect.left += (rect.right - rect.left)*0.25;
-	_rect.top += (rect.bottom - rect.top)*0.25;
+	_rect.left += (rect.right - rect.left)*COUNT_MATRIX_RATIO;
+	_rect.top += (rect.bottom - rect.top)*COUNT_MATRIX_RATIO;
 	RECT temprect;
 	int dim_X_step = (_rect.right - _rect.left) / dim_X;
 	int col_step = (_rect.bottom - _rect.top) / dim_Y;
@@ -135,6 +130,7 @@ void TileMatrix::attachRECT(RECT _rect)
 			temprect.right = i + dim_X_step;
 			matr[ik][jk].attachRECT(temprect);
 		}
+	InitializeMatrix();
 }
 
 char TileMatrix::getState()
@@ -147,11 +143,11 @@ void TileMatrix::setState(char _st)
 	state = _st;
 }
 
-void TileMatrix::setValueByPress(LPARAM lParam,int val)
+void TileMatrix::setValueByPress(LPARAM lParam,char new_value)
 {
-	if (val == TILE_CROSSED && state == STATE_EDITOR) return;
+	if (new_value == TILE_CROSSED && state == STATE_EDITOR) return;
 	int xPos, yPos;
-	char tmpval;
+	char old_value;
 	RECT tempR;
 	xPos = GET_X_LPARAM(lParam);
 	yPos = GET_Y_LPARAM(lParam);
@@ -163,46 +159,45 @@ void TileMatrix::setValueByPress(LPARAM lParam,int val)
 			if ((tempR.top<yPos&&tempR.bottom>yPos) &&
 				(tempR.left<xPos&&tempR.right>xPos))
 			{
-				tmpval=matr[i][j].getValue();
+				old_value=matr[i][j].getValue();
 				if (state == STATE_EDITOR)
 				{
-					if (val == tmpval) val = TILE_EMPTY;
+					if (new_value == old_value) new_value = TILE_EMPTY;
 				}
 				if (state == STATE_GAME) 
 				{
-					if (tmpval == 0) 
+					if (old_value == TILE_EMPTY) 
 					{
-						if (val == 1) val = 5;
-						//if (val == 2) val = 2;
+						if (new_value == TILE_MARKED) new_value = TILE_MARKED_WRONG;
+						//if (new_value == TILE_CROSSED) ok
 					}
-					
-					if (tmpval == 3) 
+					if (old_value == TILE_FILLED) 
 					{
-						//if (val == 1) val = 1;
-						if (val == 2) val = 4;
+						//if (new_value == TILE_MARKED) ok
+						if (new_value == TILE_CROSSED) new_value = TILE_CROSSED_WRONG;
 					}
-					if (tmpval == 1) 
+					if (old_value == TILE_MARKED) 
 					{
-						if (val == 1) val = 3;
-						if (val == 2) val = 4;
+						if (new_value == TILE_MARKED) new_value = TILE_FILLED;
+						if (new_value == TILE_CROSSED) new_value = TILE_CROSSED_WRONG;
 					}
-					if (tmpval == 2)
+					if (old_value == TILE_CROSSED)
 					{
-						if (val == 1) val = 5;
-						if (val == 2) val = 0;
+						if (new_value == TILE_MARKED) new_value = TILE_MARKED_WRONG;
+						if (new_value == TILE_CROSSED) new_value = TILE_EMPTY;
 					}
-					if (tmpval == 4)
+					if (old_value == TILE_CROSSED_WRONG)
 					{
-						//if (val == 1) val = 1;
-						if (val == 2) val = 3;
+						//if (new_value == TILE_MARKED) ok
+						if (new_value == TILE_CROSSED) new_value = TILE_FILLED;
 					}
-					if (tmpval == 5)
+					if (old_value == TILE_MARKED_WRONG)
 					{
-						if (val == 1) val = 0;
-						//if (val == 2) val = 2;
+						if (new_value == TILE_MARKED) new_value = TILE_EMPTY;
+						//if (new_value == TILE_CROSSED) ok
 					}
 				}
-				matr[i][j].setValue(val);
+				matr[i][j].setValue(new_value);
 			}
 		}
 	}
@@ -220,14 +215,13 @@ void TileMatrix::save(LPWSTR filename)
 
 void TileMatrix::restore(LPWSTR filename)
 {
-	initmatrix = true;
+
 	InvalidateRect(hwnd, NULL, TRUE);
 	std::ifstream file(filename);
 	destroyTables();
 	file >> dim_X >> dim_Y;
 	createTables();
 	int tempval;
-	attachRECT(rect);
 	for (int i = 0; i < dim_X; i++)
 		for (int j = 0; j < dim_Y; j++) {
 			file >> tempval;
@@ -236,12 +230,10 @@ void TileMatrix::restore(LPWSTR filename)
 }
 
 void TileMatrix::create(int dx, int dy) {
-	initmatrix = true;
 	InvalidateRect(hwnd, NULL, TRUE);
 	destroyTables();
 	dim_X = dx, dim_Y = dy;
 	createTables();
-	attachRECT(rect);
 }
 
 int TileMatrix::returnx()

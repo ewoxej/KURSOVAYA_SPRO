@@ -19,10 +19,10 @@
 #define IDB_EDITOR                      1001
 #define IDC_CHECK1                      1001
 #define IDB_GAME                        1002
-#define IDB_WIN							10005
 #define IDC_EDIT1                       1002
 #define IDB_ABOUT                       1003
 #define IDC_EDIT2                       1003
+#define IDB_WIN                         10005
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -45,7 +45,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_RESOURCE_VALUE        135
 #define _APS_NEXT_COMMAND_VALUE         32787
 #define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           113

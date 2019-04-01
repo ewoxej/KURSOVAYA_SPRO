@@ -19,7 +19,7 @@ public:
 	void setValue(char _val);
 	char getValue();
 	RECT getRECT();
-	void Draw(bool errHighlight,bool mode);
+	void Draw(bool errHighlight,char mode);
 	void attachHDC(HDC hdc);
 	void attachRECT(RECT rect);
 	Tile();
